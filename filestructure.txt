@@ -1,0 +1,31 @@
+civicpulse-ai/
+├── README.md                          # Main documentation
+├── .gitignore                         # Ignore node_modules, etc.
+├── frontend/
+│   ├── package.json                   # React dependencies
+│   ├── public/
+│   │   └── index.html
+│   └── src/
+│       ├── App.jsx                    # Main React component (CivicPulse code)
+│       ├── index.js
+│       └── styles/
+│           └── tailwind.css
+├── backend/
+│   ├── lambda/
+│   │   ├── voiceProcessing.py         # AWS Lambda functions
+│   │   ├── issueManagement.py
+│   │   └── analytics.py
+│   └── config/
+│       └── aws-config.json
+├── docs/
+│   ├── PROJECT_DOCUMENTATION.md       # Complete documentation artifact
+│   ├── ARCHITECTURE.md
+│   ├── API_DOCUMENTATION.md
+│   └── DEMO_SCENARIOS.md
+├── assets/
+│   ├── screenshots/
+│   ├── diagrams/
+│   └── pitch-deck.pdf
+└── deployment/
+    ├── terraform/                     # Infrastructure as Code
+    └── docker-compose.yml

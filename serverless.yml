@@ -1,0 +1,129 @@
+service: civicpulse-ai-backend
+
+provider:
+  name: aws
+  runtime: python3.9
+  region: us-east-1
+  stage: ${opt:stage, 'dev'}
+  
+  environment:
+    DYNAMODB_TABLE: CivicIssues-${self:provider.stage}
+    SNS_TOPIC_ARN: !Ref CivicAlertsTopic
+    ELEVENLABS_API_KEY: ${env:ELEVENLABS_API_KEY}
+    BACKBOARD_API_KEY: ${env:BACKBOARD_API_KEY}
+  
+  iam:
+    role:
+      statements:
+        - Effect: Allow
+          Action:
+            - dynamodb:Query
+            - dynamodb:Scan
+            - dynamodb:GetItem
+            - dynamodb:PutItem
+            - dynamodb:UpdateItem
+            - dynamodb:DeleteItem
+          Resource:
+            - !GetAtt CivicIssuesTable.Arn
+        - Effect: Allow
+          Action:
+            - comprehend:DetectSentiment
+            - comprehend:DetectEntities
+          Resource: "*"
+        - Effect: Allow
+          Action:
+            - sns:Publish
+          Resource: !Ref CivicAlertsTopic
+
+functions:
+  voiceProcessing:
+    handler: lambda/voiceProcessing.lambda_handler
+    description: Process voice input and create civic issues
+    timeout: 30
+    memorySize: 512
+    events:
+      - http:
+          path: /process-voice
+          method: post
+          cors: true
+  
+  issueManagement:
+    handler: lambda/issueManagement.lambda_handler
+    description: CRUD operations for civic issues
+    timeout: 10
+    memorySize: 256
+    events:
+      - http:
+          path: /issues
+          method: get
+          cors: true
+      - http:
+          path: /issues/{issueId}
+          method: get
+          cors: true
+      - http:
+          path: /issues/{issueId}
+          method: put
+          cors: true
+      - http:
+          path: /issues/{issueId}
+          method: delete
+          cors: true
+
+resources:
+  Resources:
+    CivicIssuesTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: ${self:provider.environment.DYNAMODB_TABLE}
+        AttributeDefinitions:
+          - AttributeName: IssueID
+            AttributeType: S
+        KeySchema:
+          - AttributeName: IssueID
+            KeyType: HASH
+        BillingMode: PAY_PER_REQUEST
+        StreamSpecification:
+          StreamViewType: NEW_AND_OLD_IMAGES
+        Tags:
+          - Key: Project
+            Value: CivicPulse
+          - Key: Environment
+            Value: ${self:provider.stage}
+    
+    CivicAlertsTopic:
+      Type: AWS::SNS::Topic
+      Properties:
+        TopicName: CivicAlerts-${self:provider.stage}
+        DisplayName: CivicPulse AI Alerts
+        Tags:
+          - Key: Project
+            Value: CivicPulse
+
+  Outputs:
+    ApiGatewayRestApiId:
+      Value: !Ref ApiGatewayRestApi
+      Export:
+        Name: ${self:service}-${self:provider.stage}-ApiId
+    
+    ApiGatewayRestApiRootResourceId:
+      Value: !GetAtt ApiGatewayRestApi.RootResourceId
+      Export:
+        Name: ${self:service}-${self:provider.stage}-RootResourceId
+    
+    CivicIssuesTableName:
+      Value: !Ref CivicIssuesTable
+      Export:
+        Name: ${self:service}-${self:provider.stage}-TableName
+    
+    CivicAlertsTopicArn:
+      Value: !Ref CivicAlertsTopic
+      Export:
+        Name: ${self:service}-${self:provider.stage}-TopicArn
+
+plugins:
+  - serverless-python-requirements
+
+custom:
+  pythonRequirements:
+    dockerizePip: true

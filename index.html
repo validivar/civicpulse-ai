@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>CivicPulse AI – Step 4</title>
+
+    <!-- Tailwind -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- React -->
+    <script src="https://unpkg.com/react@17/umd/react.development.js"></script>
+    <script src="https://unpkg.com/react-dom@17/umd/react-dom.development.js"></script>
+
+    <!-- Babel -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  </head>
+
+  <body class="bg-gray-100">
+    <div id="root"></div>
+
+    <script type="text/babel">
+      const SpeechRecognition =
+        window.SpeechRecognition || window.webkitSpeechRecognition;
+
+      function App() {
+        const [tab, setTab] = React.useState("chat");
+        const [messages, setMessages] = React.useState([
+          {
+            from: "ai",
+            text: "Hi! You can type or use the microphone to report an issue."
+          }
+        ]);
+        const [input, setInput] = React.useState("");
+        const [thinking, setThinking] = React.useState(false);
+        const [listening, setListening] = React.useState(false);
+
+        const recognition = React.useRef(null);
+
+        React.useEffect(() => {
+          if (SpeechRecognition) {
+            recognition.current = new SpeechRecognition();
+            recognition.current.lang = "en-US";
+            recognition.current.continuous = false;
+            recognition.current.interimResults = false;
+
+            recognition.current.onresult = (e) => {
+              setInput(e.results[0][0].transcript);
+              setListening(false);
+            };
+
+            recognition.current.onerror = () => {
+              setListening(false);
+            };
+          }
+        }, []);
+
+        const startListening = () => {
+          if (!recognition.current) {
+            alert("Speech recognition not supported in this browser.");
+            return;
+          }
+          setListening(true);
+          recognition.current.start();
+        };
+
+        const sendMessage = () => {
+          if (!input.trim()) return;
+
+          setMessages((m) => [...m, { from: "user", text: input }]);
+          setInput("");
+          setThinking(true);
+
+          setTimeout(() => {
+            setMessages((m) => [
+              ...m,
+              {
+                from: "ai",
+                text:
+                  "Thanks! I've recorded this issue and forwarded it to city services."
+              }
+            ]);
+            setThinking(false);
+          }, 1200);
+        };
+
+        const TabButton = ({ id, label }) => (
+          <button
+            onClick={() => setTab(id)}
+            className={
+              "flex-1 py-2 rounded-lg font-medium " +
+              (tab === id
+                ? "bg-blue-600 text-white"
+                : "bg-gray-200 hover:bg-gray-300")
+            }
+          >
+            {label}
+          </button>
+        );
+
+        return (
+          <div className="min-h-screen flex items-center justify-center">
+            <div className="bg-white p-6 rounded-xl shadow-lg max-w-md w-full flex flex-col">
+              <h1 className="text-2xl font-bold text-blue-600 mb-4">
+                CivicPulse AI
+              </h1>
+
+              {/* Tabs */}
+              <div className="flex gap-2 mb-4">
+                <TabButton id="dashboard" label="Dashboard" />
+                <TabButton id="chat" label="Chat" />
+                <TabButton id="issues" label="Issues" />
+              </div>
+
+              {/* Chat */}
+              {tab === "chat" && (
+                <>
+                  <div className="flex-1 overflow-y-auto space-y-2 mb-3">
+                    {messages.map((m, i) => (
+                      <div
+                        key={i}
+                        className={
+                          "p-2 rounded-lg max-w-[80%] " +
+                          (m.from === "user"
+                            ? "bg-blue-600 text-white self-end ml-auto"
+                            : "bg-gray-200 text-gray-800")
+                        }
+                      >
+                        {m.text}
+                      </div>
+                    ))}
+                    {thinking && (
+                      <div className="text-sm text-gray-400">
+                        CivicPulse AI is typing…
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="flex gap-2 items-center">
+                    <input
+                      value={input}
+                      onChange={(e) => setInput(e.target.value)}
+                      className="flex-1 border rounded-lg px-3 py-2"
+                      placeholder="Type or speak your issue..."
+                    />
+                    <button
+                      onClick={startListening}
+                      className={
+                        "px-3 py-2 rounded-lg " +
+                        (listening
+                          ? "bg-red-500 text-white"
+                          : "bg-gray-200")
+                      }
+                    >
+                      🎤
+                    </button>
+                    <button
+                      onClick={sendMessage}
+                      className="bg-blue-600 text-white px-4 py-2 rounded-lg"
+                    >
+                      Send
+                    </button>
+                  </div>
+                </>
+              )}
+
+              {/* Dashboard */}
+              {tab === "dashboard" && (
+                <div className="text-gray-700">
+                  <p>Total Reports: <strong>847</strong></p>
+                  <p>Resolved This Week: <strong>42</strong></p>
+                  <p>Satisfaction Rate: <strong>87%</strong></p>
+                </div>
+              )}
+
+              {/* Issues */}
+              {tab === "issues" && (
+                <ul className="text-gray-700 list-disc pl-4">
+                  <li>Pothole – Princess St (In Progress)</li>
+                  <li>Streetlight Out – King St W (Pending)</li>
+                  <li>Snow Removal – University District (Resolved)</li>
+                </ul>
+              )}
+
+              <p className="text-xs text-gray-400 mt-4 text-center">
+                Step 4 complete 🎤
+              </p>
+            </div>
+          </div>
+        );
+      }
+
+      ReactDOM.render(<App />, document.getElementById("root"));
+    </script>
+  </body>
+</html>
